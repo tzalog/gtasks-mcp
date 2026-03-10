@@ -8,6 +8,7 @@ import { GaxiosResponse } from "gaxios";
 import { tasks_v1 } from "googleapis";
 
 const MAX_TASK_RESULTS = 100;
+const MAX_DISCOVERED_RESOURCES = 500;
 
 export class TaskResources {
   static async read(request: ReadResourceRequest, tasks: tasks_v1.Tasks) {
@@ -57,6 +58,10 @@ export class TaskResources {
     let allTasks: tasks_v1.Schema$Task[] = [];
 
     for (const taskList of taskLists) {
+      if (allTasks.length >= MAX_DISCOVERED_RESOURCES) {
+        break;
+      }
+
       if (!taskList.id) {
         continue;
       }
@@ -67,7 +72,8 @@ export class TaskResources {
       });
 
       const taskItems = tasksResponse.data.items || [];
-      allTasks = allTasks.concat(taskItems);
+      const remainingCapacity = MAX_DISCOVERED_RESOURCES - allTasks.length;
+      allTasks = allTasks.concat(taskItems.slice(0, remainingCapacity));
     }
 
     return allTasks;
