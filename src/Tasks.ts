@@ -45,18 +45,9 @@ export class TaskResources {
   }
 
   static async list(
-    request: ListResourcesRequest,
+    _request: ListResourcesRequest,
     tasks: tasks_v1.Tasks,
-  ): Promise<[tasks_v1.Schema$Task[], string | null]> {
-    const pageSize = 10;
-    const params: any = {
-      maxResults: pageSize,
-    };
-
-    if (request.params?.cursor) {
-      params.pageToken = request.params.cursor;
-    }
-
+  ): Promise<tasks_v1.Schema$Task[]> {
     const taskListsResponse = await tasks.tasklists.list({
       maxResults: MAX_TASK_RESULTS,
     });
@@ -64,23 +55,22 @@ export class TaskResources {
     const taskLists = taskListsResponse.data.items || [];
 
     let allTasks: tasks_v1.Schema$Task[] = [];
-    let nextPageToken = null;
 
     for (const taskList of taskLists) {
+      if (!taskList.id) {
+        continue;
+      }
+
       const tasksResponse = await tasks.tasks.list({
         tasklist: taskList.id,
-        ...params,
+        maxResults: MAX_TASK_RESULTS,
       });
 
       const taskItems = tasksResponse.data.items || [];
       allTasks = allTasks.concat(taskItems);
-
-      if (tasksResponse.data.nextPageToken) {
-        nextPageToken = tasksResponse.data.nextPageToken;
-      }
     }
 
-    return [allTasks, nextPageToken];
+    return allTasks;
   }
 }
 
